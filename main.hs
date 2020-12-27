@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Text.Parsec
-import Text.Parsec.Text
+import Text.Parsec.String
 import Text.Parsec.Token (float)
 import Data.Functor ((<&>))
 import Data.Bifunctor (first, bimap)
@@ -13,9 +15,10 @@ data Command
     deriving (Show)
 
 mathExpr :: Parser Double
-mathExpr = spaces >> (
-    i1 <|> i2 <|> i3) 
-    >>= \x -> spaces >> return x
+mathExpr = sp (i1 <|> i2 <|> i3)
+
+sp :: Parser a -> Parser a
+sp p = spaces >> p >>= \x -> spaces >> return x
 
 {-
 Different infix numbers. 
@@ -24,21 +27,23 @@ Example:
   1 + 2 * sqrt(3) = 1 + (2 * (sqrt(3)))
 
 level 1: + | -
-level 2: * | / | %
+level 2: * | /
 level 3: sin | cos | tan | sqrt
 level 4: float
-
 -}
 
 
 i1 :: Parser Double
-i1 = add' <|> sub' <|> i2 <|> i3
+i1 = sp (try add' <|> try sub' <|> i2 <|> i3)
 
 i2 :: Parser Double
-i2 = mul' <|> div' <|> mod' <|> i3 
+i2 = sp (try mul' <|> try div' <|> i3)
 
 i3 :: Parser Double
-i3 = sin' <|> cos' <|> tan' <|> sqrt' <|> par' <|> float
+i3 = sp (
+    sin' <|> cos' <|> 
+    tan' <|> sqrt' <|> 
+    par' <|> (read <$> many1 (oneOf ".0123456789")))
 
 par' :: Parser Double
 par' = do
@@ -101,11 +106,12 @@ div' = do
     x1 <- i3
     char '/'
     x2 <- mathExpr
-    if x2 == 0 then 
+    if x2 == 0 
+        then parserFail "Tried to divide by 0!" -- BUG: error message not propegated to user
+        else return $ x1 / x2
 
-{-
-    mod' 
--}
+
+
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
