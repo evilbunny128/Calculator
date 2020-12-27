@@ -14,10 +14,31 @@ data Command
 
 mathExpr :: Parser Double
 mathExpr = spaces >> (
-    par' <|> sin' <|> cos' <|> 
-    tan' <|> sqrt <|> add' <|> 
-    sub' <|> mul' <|> div' <|> 
-    mod') >>= \x -> spaces >> return x
+    i1 <|> i2 <|> i3) 
+    >>= \x -> spaces >> return x
+
+{-
+Different infix numbers. 
+Example: 
+  1 + 2 * 3 = 1 + (2 * 3)
+  1 + 2 * sqrt(3) = 1 + (2 * (sqrt(3)))
+
+level 1: + | -
+level 2: * | / | %
+level 3: sin | cos | tan | sqrt
+level 4: float
+
+-}
+
+
+i1 :: Parser Double
+i1 = add' <|> sub' <|> i2 <|> i3
+
+i2 :: Parser Double
+i2 = mul' <|> div' <|> mod' <|> i3 
+
+i3 :: Parser Double
+i3 = sin' <|> cos' <|> tan' <|> sqrt' <|> par' <|> float
 
 par' :: Parser Double
 par' = do
@@ -46,6 +67,45 @@ tan' = do
     x <- mathExpr
     char ')'
     return $ tan x
+
+sqrt' :: Parser Double
+sqrt' = do
+    try $ string "sqrt("
+    x <- mathExpr
+    char ')'
+    return $ sqrt x
+
+add' :: Parser Double
+add' = do
+    x1 <- i2
+    char '+'
+    x2 <- mathExpr
+    return $ x1 + x2
+
+sub' :: Parser Double
+sub' = do
+    x1 <- i2
+    char '-'
+    x2 <- mathExpr
+    return $ x1 - x2
+
+mul' :: Parser Double
+mul' = do
+    x1 <- i3
+    char '*'
+    x2 <- mathExpr
+    return $ x1 * x2
+
+div' :: Parser Double
+div' = do
+    x1 <- i3
+    char '/'
+    x2 <- mathExpr
+    if x2 == 0 then 
+
+{-
+    mod' 
+-}
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
