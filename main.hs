@@ -3,13 +3,15 @@
 module Main where
 
 import Text.Parsec
-import Text.Parsec.String
+import Text.Parsec.Text
 import Text.Parsec.Token (float)
 import Data.Functor ((<&>))
 import Data.Bifunctor (first, bimap)
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import System.IO ( stdout, hFlush )
 
-data Command 
+data Input 
     = Exit 
     | MathExpr Double 
     deriving (Show)
@@ -110,8 +112,22 @@ div' = do
         then parserFail "Tried to divide by 0!" -- BUG: error message not propegated to user
         else return $ x1 / x2
 
-
+parseInput :: Parser Input
+parseInput = 
+    (MathExpr <$> mathExpr) <|> 
+    (try (string "exit") >> return Exit)
 
 
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = do
+    putStr "-> "
+    hFlush stdout
+    input <- TIO.getLine
+    let e = parse parseInput "" input
+    case e of
+        Right ans -> case ans of
+            Exit -> return ()
+            MathExpr n -> do
+                putStrLn $ show n ++ "\n"
+                main
+        Left _ -> print e
