@@ -127,3 +127,8 @@ main = do
             Exit -> return ()
             MathExpr n -> do
                 putStrLn $ show n ++ "\n"
+                main
+        Left err -> do
+            print err
+            main
+
