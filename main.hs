@@ -5,8 +5,6 @@ module Main where
 import Text.Parsec
 import Text.Parsec.Text
 import Text.Parsec.Token (float)
-import Data.Functor ((<&>))
-import Data.Bifunctor (first, bimap)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.IO ( stdout, hFlush )
@@ -129,5 +127,3 @@ main = do
             Exit -> return ()
             MathExpr n -> do
                 putStrLn $ show n ++ "\n"
-                main
-        Left _ -> print e
