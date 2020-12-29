@@ -7,6 +7,7 @@ Considdering adding variable assignment later.
 
 - [x] Create parser for mathematical expressions.
 - [x] Make a basic Read-evaluate-print-loop.
-- [ ] Make parser for variable assignment expressions.
-- [ ] Add a list of variable names and values as an argument to all relevant parsers.
+- [x] Make parser for variable assignment expressions.
+- [x] Add a list of variable names and values as an argument to all relevant parsers.
+- [ ] Fix the fact that attempts to change a constants value fails silently.
 

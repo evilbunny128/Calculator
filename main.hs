@@ -11,11 +11,12 @@ import System.IO ( stdout, hFlush )
 
 data Input 
     = Exit 
-    | MathExpr Double 
+    | MathExpr Double
+    | VarAssign T.Text Double
     deriving (Show)
 
-mathExpr :: Parser Double
-mathExpr = sp (i1 <|> i2 <|> i3)
+mathExpr :: Env -> Parser Double
+mathExpr env = sp (i1 env <|> i2 env <|> i3 env)
 
 sp :: Parser a -> Parser a
 sp p = spaces >> p >>= \x -> spaces >> return x
@@ -32,103 +33,126 @@ level 3: sin | cos | tan | sqrt
 level 4: float
 -}
 
+type Env = [(T.Text, Double)]
 
-i1 :: Parser Double
-i1 = sp (try add' <|> try sub' <|> i2 <|> i3)
+i1 :: Env -> Parser Double
+i1 env = sp (try (add' env) <|> try (sub' env) <|> i2 env <|> i3 env )
 
-i2 :: Parser Double
-i2 = sp (try mul' <|> try div' <|> i3)
+i2 :: Env -> Parser Double
+i2 env = sp (try (mul' env) <|> try (div' env) <|> i3 env)
 
-i3 :: Parser Double
-i3 = sp (
-    sin' <|> cos' <|> 
-    tan' <|> sqrt' <|> 
-    par' <|> (read <$> many1 (oneOf ".0123456789")))
+i3 :: Env -> Parser Double
+i3 env = sp (
+    sin' env <|> cos' env <|> 
+    tan' env <|> sqrt' env <|> 
+    par' env <|> (read <$> many1 (oneOf "-.0123456789")) <|>
+    try (var' env))
 
-par' :: Parser Double
-par' = do
+var' :: Env -> Parser Double
+var' env = do
+    varName <- T.pack <$> many1 letter
+    case lookup varName env of
+        Just x -> return x
+        Nothing -> parserFail $ "variable \""  ++ T.unpack varName ++ "\" was not found!"
+
+par' :: Env -> Parser Double
+par' env = do
     char '('
-    x <- mathExpr
+    x <- mathExpr env
     char ')'
     return x
 
-sin' :: Parser Double
-sin' = do
+sin' :: Env -> Parser Double
+sin' env = do
     try $ string "sin("
-    x <- mathExpr
+    x <- mathExpr env
     char ')'
     return $ sin x
 
-cos' :: Parser Double
-cos' = do
+cos' :: Env -> Parser Double
+cos' env = do
     try $ string "cos("
-    x <- mathExpr
+    x <- mathExpr env
     char ')'
     return $ cos x
 
-tan' :: Parser Double
-tan' = do
+tan' :: Env -> Parser Double
+tan' env = do
     try $ string "tan("
-    x <- mathExpr
+    x <- mathExpr env
     char ')'
     return $ tan x
 
-sqrt' :: Parser Double
-sqrt' = do
+sqrt' :: Env -> Parser Double
+sqrt' env = do
     try $ string "sqrt("
-    x <- mathExpr
+    x <- mathExpr env
     char ')'
     return $ sqrt x
 
-add' :: Parser Double
-add' = do
-    x1 <- i2
+add' :: Env -> Parser Double
+add' env = do
+    x1 <- i2 env
     char '+'
-    x2 <- mathExpr
+    x2 <- mathExpr env
     return $ x1 + x2
 
-sub' :: Parser Double
-sub' = do
-    x1 <- i2
+sub' :: Env -> Parser Double
+sub' env = do
+    x1 <- i2 env
     char '-'
-    x2 <- mathExpr
+    x2 <- mathExpr env
     return $ x1 - x2
 
-mul' :: Parser Double
-mul' = do
-    x1 <- i3
+mul' :: Env -> Parser Double
+mul' env = do
+    x1 <- i3 env
     char '*'
-    x2 <- mathExpr
+    x2 <- mathExpr env
     return $ x1 * x2
 
-div' :: Parser Double
-div' = do
-    x1 <- i3
+div' :: Env -> Parser Double
+div' env = do
+    x1 <- i3 env
     char '/'
-    x2 <- mathExpr
+    x2 <- mathExpr env
     if x2 == 0 
         then parserFail "Tried to divide by 0!" -- BUG: error message not propegated to user
         else return $ x1 / x2
 
-parseInput :: Parser Input
-parseInput = 
-    (MathExpr <$> mathExpr) <|> 
-    (try (string "exit") >> return Exit)
+assign :: Env -> Parser (T.Text, Double)
+assign env = do
+    varName <- try $ many1 letter
+    try spaces
+    char '='
+    mE <- mathExpr env
+    return (T.pack varName, mE)
 
+parseInput :: Env -> Parser Input
+parseInput env = 
+    (MathExpr <$> mathExpr env) <|> 
+    (try (string "exit") >> return Exit) <|>
+    uncurry VarAssign <$> assign env
 
-main :: IO ()
-main = do
+mainLoop :: Env -> IO ()
+mainLoop env = do
     putStr "-> "
     hFlush stdout
     input <- TIO.getLine
-    let e = parse parseInput "" input
+    let e = parse (parseInput env) "" input
     case e of
         Right ans -> case ans of
             Exit -> return ()
             MathExpr n -> do
                 putStrLn $ show n ++ "\n"
-                main
+                mainLoop env
+            VarAssign lab val -> do
+                TIO.putStrLn $ lab <> " = " <> (T.pack . show) val
+                mainLoop $ (lab, val):env
         Left err -> do
             print err
-            main
+            mainLoop env
+
+main :: IO ()
+main = mainLoop []
 
