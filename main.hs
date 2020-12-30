@@ -130,15 +130,16 @@ assign env = do
 
 parseInput :: Env -> Parser Input
 parseInput env = 
+    uncurry VarAssign <$> try (assign env) <|>
     (MathExpr <$> mathExpr env) <|> 
-    (try (string "exit") >> return Exit) <|>
-    uncurry VarAssign <$> assign env
+    (try (string "exit") >> return Exit)
 
 mainLoop :: Env -> IO ()
 mainLoop env = do
     putStr "-> "
     hFlush stdout
     input <- TIO.getLine
+    print env
     let e = parse (parseInput env) "" input
     case e of
         Right ans -> case ans of

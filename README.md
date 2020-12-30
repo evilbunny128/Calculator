@@ -1,6 +1,6 @@
 # Calculator
 Basic command line calculator with order precedence, parenthasies, etc. 
-Considdering adding variable assignment later.
+Considdering adding variable assignment later [Done]. 
 
 ---
 # Todo
@@ -9,5 +9,5 @@ Considdering adding variable assignment later.
 - [x] Make a basic Read-evaluate-print-loop.
 - [x] Make parser for variable assignment expressions.
 - [x] Add a list of variable names and values as an argument to all relevant parsers.
-- [ ] Fix the fact that attempts to change a constants value fails silently.
+- [x] Fix the fact that attempts to change a constants value fails silently. (solved by allowing reassignment)
 
