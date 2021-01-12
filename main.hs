@@ -139,7 +139,6 @@ mainLoop env = do
     putStr "-> "
     hFlush stdout
     input <- TIO.getLine
-    print env
     let e = parse (parseInput env) "" input
     case e of
         Right ans -> case ans of
